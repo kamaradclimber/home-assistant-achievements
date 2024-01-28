@@ -22,3 +22,32 @@ This is a prototype to have a system of achievements in Home Assistant.
 * Supporter: enable Home Assistant Cloud
 * Autonomous: consumes 0kWh from the grid (all comes from solar or battery)
 * Mostly-green: >95% of low carbon energy consumed over a week
+
+## Design
+
+The integration has two parts:
+- a core, listening to events announcing achievemnts, storing them on disk and exposing sensors for each.
+- a event emitter with a few demonstration achievements
+
+Technically both could be separated in their own integration. Any integration can provide achievements by sending [an event](https://www.home-assistant.io/docs/configuration/events/) named `achievement_granted`.
+
+The core is listening to event whose data field is:
+```
+{ "major_version": 1, "minor_version": 0, "achievement": <data> }
+```
+where `achievement` field depends on the major/minor version.
+
+Here is the format for now:
+
+```
+{
+  "major_version": 0,
+  "minor_version": 1,
+  "data": {
+    "title": <a string giving a catchy name>,
+    "description": <a markdown string describing how the achievement was obtained>,
+    "source": <a name of the integration which granted the achievemnt>,
+    "granted_on": <optional string giving time at which the event leading to achievement grant happened. If unspecified it is the time of the event>,
+    "extra": <optional dictionnary which will be merged with the achievement sensor attribute>
+  }
+```
