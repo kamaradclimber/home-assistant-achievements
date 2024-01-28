@@ -43,7 +43,7 @@ Here is the format for now:
 {
   "major_version": 0,
   "minor_version": 1,
-  "data": {
+  "achievement": {
     "title": <a string giving a catchy name>,
     "description": <a markdown string describing how the achievement was obtained>,
     "source": <a name of the integration which granted the achievemnt>,
