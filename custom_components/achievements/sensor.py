@@ -71,3 +71,6 @@ class AchievementCountSensorEntity(SensorEntity):
     @callback
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
+        def receive_achievement(event):
+            _LOGGER.info(f"Received event: {event}")
+        self._stop_listen = self.hass.bus.async_listen("achievement_granted", receive_achievement)
