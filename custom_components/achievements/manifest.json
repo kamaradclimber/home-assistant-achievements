@@ -1,0 +1,13 @@
+{
+  "domain": "achievements",
+  "name": "Achievements",
+  "codeowners": ["@kamaradclimber"],
+  "config_flow": true,
+  "documentation": "https://github.com/kamaradclimber/home-assistant-achievements",
+  "integration_type": "device",
+  "iot_class": "assumed_state",
+  "issue_tracker": "https://github.com/kamaradclimber/home-assistant-achievements/issues",
+  "requirements": [
+  ],
+  "version": "0.1.0"
+}
