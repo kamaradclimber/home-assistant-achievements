@@ -47,7 +47,8 @@ Here is the format for now:
     "title": <a string giving a catchy name>,
     "description": <a markdown string describing how the achievement was obtained>,
     "source": <a name of the integration which granted the achievemnt>,
-    "granted_on": <optional string giving time at which the event leading to achievement grant happened. If unspecified it is the time of the event>,
+    "id": <a string identifying uniquely this achievement, can be reuse if this achievement is granted several times>,
+    "granted_on": <optional string giving time at which the event leading to achievement grant happened. If unspecified it is the time of the event. Format is %Y-%m-%dT%H:%M:%S%z>,
     "extra": <optional dictionnary which will be merged with the achievement sensor attribute>
   }
 ```

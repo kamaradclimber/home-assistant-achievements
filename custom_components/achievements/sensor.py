@@ -1,5 +1,6 @@
 import logging
 
+from typing import Optional
 from collections.abc import Callable
 from datetime import timedelta, datetime
 from homeassistant.core import HomeAssistant, callback
@@ -13,6 +14,10 @@ from homeassistant.const import EntityCategory
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
+)
+from homeassistant.components.binary_sensor import (
+    BinarySensorEntity,
+    BinarySensorEntityDescription,
 )
 
 from .const import DOMAIN
@@ -37,9 +42,36 @@ def parse_date(string):
 
 
 @dataclass(frozen=True, kw_only=True)
-class GeoveloSensorEntityDescription(SensorEntityDescription):
-    on_receive: Callable | None = None
-    monthly_utility: bool = False
+class AchievementDescription(BinarySensorEntityDescription):
+    config_entry: ConfigEntry
+    granted_on: datetime
+    description: str
+    source: str
+
+
+class AchievementSensor(BinarySensorEntity):
+    def __init__(self, description):
+        super().__init__()
+        self.entity_description = description
+        self._attr_unique_id = f"achievement.{description.key}"
+        # if the achievement is created, it is on
+        self._attr_is_on = True
+        self._attr_icon = "mdi:medal-outline"
+        self._attr_extra_state_attributes = {
+            "granted_on": description.granted_on,
+            "description": description.description,
+            "source": description.source,
+        }
+        self._attr_device_info = DeviceInfo(
+            name=f"Achievements",
+            entry_type=DeviceEntryType.SERVICE,
+            identifiers={
+                (
+                    DOMAIN,
+                    str(description.config_entry.entry_id),
+                )
+            },
+        )
 
 
 class AchievementCountSensorEntity(SensorEntity):
@@ -71,6 +103,38 @@ class AchievementCountSensorEntity(SensorEntity):
     @callback
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
+
         def receive_achievement(event):
             _LOGGER.info(f"Received event: {event}")
-        self._stop_listen = self.hass.bus.async_listen("achievement_granted", receive_achievement)
+            self.declare_achievement(event)
+
+        self._stop_listen = self.hass.bus.async_listen(
+            "achievement_granted", receive_achievement
+        )
+
+    def validate_achievement(self, achievement):
+        for key in ["title", "source", "description", "id"]:
+            if key not in achievement:
+                raise InvalidAchievementEvent(f"Achievement must have a {key}")
+
+    def declare_achievement(self, event):
+        achievement = event.data["achievement"]
+        self.validate_achievement(achievement)
+        granted_on = datetime.now()
+        if "granted_on" in achievement:
+            granted_on = datetime.strptime(
+                achievement["granted_on"], "%Y-%m-%dT%H:%M:%S%z"
+            )
+        description = AchievementDescription(
+            name=achievement["title"],
+            key=f'{achievement["source"]}.{achievement["id"]}',
+            description=achievement["description"],
+            granted_on=granted_on,
+            source=achievement["source"],
+            config_entry=self.config_entry,
+        )
+        self._async_add_entities([AchievementSensor(description)])
+
+
+class InvalidAchievementEvent(Exception):
+    pass
