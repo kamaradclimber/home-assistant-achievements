@@ -1,5 +1,6 @@
 import logging
 
+import threading
 from typing import Optional
 from collections.abc import Callable
 from datetime import timedelta, datetime
@@ -88,6 +89,9 @@ class AchievementCountSensorEntity(SensorEntity):
         self._attr_name = "Achievement count"
         self._attr_entity_category = EntityCategory.DIAGNOSTIC
         self._attr_unique_id = f"achievements-{config_entry.entry_id}"
+        self._achievement_store = Store(hass, 1, self._attr_unique_id)
+        self._write_mutex = threading.Lock()
+        self._all_achievements = []
 
         self._attr_device_info = DeviceInfo(
             name=f"Achievements",
@@ -100,13 +104,41 @@ class AchievementCountSensorEntity(SensorEntity):
             },
         )
 
+    @property
+    def native_value(self):
+        return len(self._all_achievements)
+
+    def collect_known_achievements(self) -> list[AchievementDescription]:
+        with self._write_mutex:
+            return self._all_achievements
+
     @callback
     async def async_added_to_hass(self):
         await super().async_added_to_hass()
 
+        achievements = await self._achievement_store.async_load()
+        for achievement in achievements:
+            description = AchievementDescription(
+                name=achievement["name"],
+                key=achievement["key"],
+                description=achievement["description"],
+                granted_on=datetime.strptime(
+                    achievement["granted_on"], "%Y-%m-%dT%H:%M:%S.%f"
+                ),
+                source=achievement["source"],
+                config_entry=self.config_entry,
+            )
+            self._all_achievements.append(description)
+            self._async_add_entities([AchievementSensor(description)])
+
         def receive_achievement(event):
-            _LOGGER.info(f"Received event: {event}")
-            self.declare_achievement(event)
+            _LOGGER.debug(f"Received event: {event}")
+            description = self.declare_achievement(event)
+            with self._write_mutex:
+                self._all_achievements.append(description)
+                self._achievement_store.async_delay_save(
+                    self.collect_known_achievements
+                )
 
         self._stop_listen = self.hass.bus.async_listen(
             "achievement_granted", receive_achievement
@@ -117,7 +149,7 @@ class AchievementCountSensorEntity(SensorEntity):
             if key not in achievement:
                 raise InvalidAchievementEvent(f"Achievement must have a {key}")
 
-    def declare_achievement(self, event):
+    def declare_achievement(self, event) -> AchievementDescription:
         achievement = event.data["achievement"]
         self.validate_achievement(achievement)
         granted_on = datetime.now()
@@ -134,6 +166,7 @@ class AchievementCountSensorEntity(SensorEntity):
             config_entry=self.config_entry,
         )
         self._async_add_entities([AchievementSensor(description)])
+        return description
 
 
 class InvalidAchievementEvent(Exception):
