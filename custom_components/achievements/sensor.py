@@ -1,20 +1,16 @@
 import logging
 
 import threading
-from typing import Optional
-from collections.abc import Callable
-from datetime import timedelta, datetime
+from datetime import datetime
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
-from datetime import timedelta
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.const import EntityCategory
 from homeassistant.components.sensor import (
     SensorEntity,
-    SensorEntityDescription,
 )
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
@@ -31,7 +27,6 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     main_sensor = AchievementCountSensorEntity(hass, entry, async_add_entities)
-
     async_add_entities([main_sensor])
 
 
