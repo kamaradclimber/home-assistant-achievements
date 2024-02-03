@@ -112,25 +112,25 @@ class AchievementCountSensorEntity(SensorEntity):
         await super().async_added_to_hass()
 
         achievements = await self._achievement_store.async_load()
-        for achievement in achievements:
-            description = AchievementDescription(
-                name=achievement["name"],
-                key=achievement["key"],
-                description=achievement["description"],
-                granted_on=datetime.strptime(
-                    achievement["granted_on"], "%Y-%m-%dT%H:%M:%S.%f"
-                ),
-                source=achievement["source"],
-                config_entry=self.config_entry,
-            )
-            self._all_achievements.append(description)
-            self._async_add_entities([AchievementSensor(description)])
+        if achievements is not None:
+            for achievement in achievements:
+                description = AchievementDescription(
+                    name=achievement["name"],
+                    key=achievement["key"],
+                    description=achievement["description"],
+                    granted_on=datetime.strptime(
+                        achievement["granted_on"], "%Y-%m-%dT%H:%M:%S.%f"
+                    ),
+                    source=achievement["source"],
+                    config_entry=self.config_entry,
+                )
+                self._all_achievements.append(description)
+                self._async_add_entities([AchievementSensor(description)])
 
         def receive_achievement(event):
             _LOGGER.debug(f"Received event: {event}")
-            description = self.declare_achievement(event)
             with self._write_mutex:
-                self._all_achievements.append(description)
+                self.declare_achievement(event)
                 self._achievement_store.async_delay_save(
                     self.collect_known_achievements
                 )
@@ -144,24 +144,28 @@ class AchievementCountSensorEntity(SensorEntity):
             if key not in achievement:
                 raise InvalidAchievementEvent(f"Achievement must have a {key}")
 
-    def declare_achievement(self, event) -> AchievementDescription:
+    def declare_achievement(self, event) -> None:
         achievement = event.data["achievement"]
         self.validate_achievement(achievement)
         granted_on = datetime.now()
+        key = f'{achievement["source"]}.{achievement["id"]}'
         if "granted_on" in achievement:
             granted_on = datetime.strptime(
                 achievement["granted_on"], "%Y-%m-%dT%H:%M:%S%z"
             )
+        if key in [desc.key for desc in self._all_achievements]:
+            _LOGGER.debug(f"{key} has already been granted, ignoring")
+            return
         description = AchievementDescription(
             name=achievement["title"],
-            key=f'{achievement["source"]}.{achievement["id"]}',
+            key=key,
             description=achievement["description"],
             granted_on=granted_on,
             source=achievement["source"],
             config_entry=self.config_entry,
         )
         self._async_add_entities([AchievementSensor(description)])
-        return description
+        self._all_achievements.append(description)
 
 
 class InvalidAchievementEvent(Exception):
