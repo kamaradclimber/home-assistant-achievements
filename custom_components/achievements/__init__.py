@@ -8,6 +8,9 @@ from datetime import datetime, timedelta
 from homeassistant.loader import async_get_integrations
 from homeassistant.setup import async_get_loaded_integrations
 from homeassistant.helpers.event import async_call_later, async_track_time_interval
+from homeassistant.helpers.storage import Store
+from awesomeversion import AwesomeVersion
+from homeassistant.const import __version__
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # subscribe to config updates
     entry.async_on_unload(entry.add_update_listener(update_entry))
 
-    detector = AchievementDetector(hass)
+    detector = AchievementDetector(hass, entry)
 
     @callback
     def start_schedule(_event: Event) -> None:
@@ -74,8 +77,38 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 class AchievementDetector:
-    def __init__(self, hass: HomeAssistant):
+    def __init__(self, hass: HomeAssistant, config_entry: ConfigEntry):
         self.hass = hass
+        self._store = Store(hass, 1, f"achievement-detector-{config_entry.entry_id}")
+
+    async def check_upgrade(self):
+        store = await self._store.async_load()
+        if store is None:
+            return
+        previous = AwesomeVersion(store["previous_running_version"])
+        current = AwesomeVersion(__version__)
+        if previous.beta and current.beta and current > previous:
+            self.hass.bus.fire(
+                "achievement_granted",
+                {
+                    "major_version": 0,
+                    "minor_version": 1,
+                    "achievement": {
+                        "title": "Dangerous living",
+                        "description": f"You've upgraded from one beta to another",
+                        "source": "achievements-core",
+                        "id": "2a9129ec-17c1-4a4b-afae-4fd7ddddf341",
+                    },
+                },
+            )
+
+    async def store(self):
+        await self._store.async_save(
+            {
+                "previous_running_version": __version__,
+            }
+        )
+        _LOGGER.debug("Persistent storage for achievement has been stored")
 
     async def detect_achievements(self, _: datetime | None = None):
         domains = async_get_loaded_integrations(self.hass)
@@ -106,3 +139,6 @@ class AchievementDetector:
                     },
                 },
             )
+
+        await self.check_upgrade()
+        await self.store()
