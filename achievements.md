@@ -7,7 +7,7 @@ Don't look at this file if you don't to be spoiled
 * [ ] Disciple: 1-10 automations
 * [ ] Crafter: 10-50 automations
 * [ ] Go home safe: cycle during on the night of New Year's eve
-* [ ] Out of date: >= 10 pending updates
+* [x] Out of date: >= 10 pending updates
 * [x] Dangerous living: upgrade from one beta to another (2024.1b to 2024.2b for instance)
 * [ ] The more the merrier: have more than 5 users with mobile devices
 * [ ] Local only: have no integration that does cloud poll/push

@@ -44,7 +44,7 @@ class AchievementDescription(BinarySensorEntityDescription):
     granted_on: datetime
     description: str
     source: str
-    extra: Optional[Dict[str,str]] = None
+    extra: Optional[Dict[str, str]] = None
 
 
 class AchievementSensor(BinarySensorEntity):
@@ -167,7 +167,7 @@ class AchievementCountSensorEntity(SensorEntity):
             granted_on=granted_on,
             source=achievement["source"],
             config_entry=self.config_entry,
-            extra=achievement.get("extra", None)
+            extra=achievement.get("extra", None),
         )
         self._async_add_entities([AchievementSensor(description)])
         self._all_achievements.append(description)

@@ -11,6 +11,7 @@ from homeassistant.helpers.event import async_call_later, async_track_time_inter
 from homeassistant.helpers.storage import Store
 from awesomeversion import AwesomeVersion
 from homeassistant.const import __version__
+from homeassistant.helpers.entity_registry import async_get
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -142,3 +143,30 @@ class AchievementDetector:
 
         await self.check_upgrade()
         await self.store()
+
+        # update count
+        entity_registry = async_get(self.hass)
+        updates = [
+            entry
+            for entry in entity_registry.entities.values()
+            if entry.domain == "update"
+        ]
+        out_of_date = [
+            entry
+            for entry in updates
+            if self.hass.states.get(entry.entity_id).state == "on"
+        ]
+        if len(out_of_date) > 10:
+            self.hass.bus.fire(
+                "achievement_granted",
+                {
+                    "major_version": 0,
+                    "minor_version": 1,
+                    "achievement": {
+                        "title": "Out of date",
+                        "description": f"You have {len(out_of_date)} pending updates. Time for an upgrade party!",
+                        "source": "achievements-core",
+                        "id": "ac347c90-f2a5-4166-af0f-e7fb00c81e59",
+                    },
+                },
+            )
