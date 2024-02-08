@@ -46,4 +46,7 @@ Here is the format for now:
 
 ## Known integration providing achievements
 
+- This integration provides a few achievements
 - [Geovelo](https://github.com/kamaradclimber/geovelo-homeassistant)
+
+If you want to add yours to the list, submit a PR!
