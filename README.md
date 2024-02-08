@@ -6,6 +6,10 @@ This is a prototype to have a system of achievements in Home Assistant.
 * Long term goal: offer a system for any integration to expose achievements easily thanks to helper provided by this repository.
 * All time goal: have fun and pride with useless trivia about an HA instance
 
+## Installation
+
+You can install this as a custom repository with HACS.
+
 ## Bank of achievements ideas
 
 See achievements.md file (spoiler alert!).
@@ -20,7 +24,7 @@ Technically both could be separated in their own integration. Any integration ca
 
 The core is listening to event whose data field is:
 ```
-{ "major_version": 1, "minor_version": 0, "achievement": <data> }
+{ "major_version": 0, "minor_version": 1, "achievement": <data> }
 ```
 where `achievement` field depends on the major/minor version.
 
@@ -39,3 +43,7 @@ Here is the format for now:
     "extra": <optional dictionnary which will be merged with the achievement sensor attribute>
   }
 ```
+
+## Known integration providing achievements
+
+- [Geovelo](https://github.com/kamaradclimber/geovelo-homeassistant)
